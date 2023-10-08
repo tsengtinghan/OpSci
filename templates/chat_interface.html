@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Research Project Matcher</title>
+</head>
+<body>
+    <h2>Type in what kind of project you're interested in:</h2>
+    <textarea id="userInput" rows="4" cols="50"></textarea>
+    <br>
+    <label for="searchType">Search using:</label>
+    <select id="searchType">
+        <option value="description">Project Descriptions</option>
+        <option value="keywords_and_fields">Keywords and Fields of Science</option>
+    </select>
+    <br><br>
+    <button onclick="submitQuery()">Submit</button>
+    <h3>Top 5 Matched Projects:</h3>
+    <ul id="matchedProjects"></ul>
+
+    <script>
+        // function submitQuery() {
+        //     let userInput = document.getElementById("userInput").value;
+        //     let searchType = document.getElementById("searchType").value;
+        //     fetch("/get_matches?_=" + new Date().getTime(), { // Append a timestamp to make each request unique
+        //         method: "POST",
+        //         headers: {
+        //             "Content-Type": "application/json"
+        //         },
+        //         body: JSON.stringify({"user_input": userInput, "search_type": searchType})
+        //     })
+        //     .then(response => response.json())
+        //     .then(data => {
+        //         let matchedProjectsList = document.getElementById("matchedProjects");
+        //         matchedProjectsList.innerHTML = "";
+        //         data["projects"].forEach(project => {
+        //             let listItem = document.createElement("li");
+        //             let link = document.createElement("a");
+        //             link.href = project.url;
+        //             link.target = "_blank";
+        //             link.innerText = project.name;
+        //             listItem.appendChild(link);
+        //             matchedProjectsList.appendChild(listItem);
+        //         });
+        //     });
+        // }
+        function submitQuery() {
+            let userInput = document.getElementById("userInput").value;
+            let searchType = document.getElementById("searchType").value;  // Keep this if you still want the option to search by description or keywords
+            fetch("/get_matches?_=" + new Date().getTime(), {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({"user_input": userInput, "search_type": searchType})
+            })
+            .then(response => response.json())
+            .then(data => {
+                let matchedProjectsList = document.getElementById("matchedProjects");
+                matchedProjectsList.innerHTML = "";
+                data["projects"].forEach(project => {
+                let listItem = document.createElement("li");
+                
+                // Create a link for the project
+                let link = document.createElement("a");
+                link.href = project.url;
+                link.target = "_blank";
+                link.innerText = project.name;
+                listItem.appendChild(link);
+                
+                // Add a line break
+                listItem.appendChild(document.createElement("br"));
+                
+                // Add the refined description
+                let description = document.createElement("span");
+                description.innerText = project.refined_description;  // Display the refined description
+                listItem.appendChild(description);
+                
+                matchedProjectsList.appendChild(listItem);
+            });
+
+            });
+        }
+
+    </script>
+</body>
+</html>
+

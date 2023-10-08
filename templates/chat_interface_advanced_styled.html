@@ -1,0 +1,220 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Research Project Matcher</title>
+    <style>
+        /* Global Styles */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #D9D9D9;
+            color: #9B9393;
+            margin: 40px;
+        }
+
+        h2, h3 {
+            color: #9E9E9E;
+        }
+
+        /* Buttons */
+        button {
+            background-color: #FED059;
+            border: none;
+            color: #9B9393;
+            padding: 10px 15px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition-duration: 0.4s;
+        }
+
+        button:hover {
+            background-color: #9E9E9E;
+            color: #FED059;
+        }
+
+        /* Text Area, Input Fields, and Dropdown */
+        textarea, input[type="text"], select {
+            width: 100%;
+            padding: 12px 20px;
+            margin: 8px 0;
+            box-sizing: border-box;
+            border: 2px solid #9E9E9E;
+            border-radius: 4px;
+            background-color: #D9D9D9;
+            resize: vertical;
+        }
+
+        /* Project Listings */
+        ul#matchedProjects {
+            list-style-type: none;
+            padding-left: 0;
+        }
+
+        ul#matchedProjects li {
+            background-color: #9E9E9E;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+
+        ul#matchedProjects li a {
+            color: #FED059;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        ul#matchedProjects li span {
+            display: block;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #D9D9D9;
+        }
+        /* Slider */
+        input[type="range"] {
+            width: 80%;
+            margin: 10px 0;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #FED059;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #FED059;
+            cursor: pointer;
+        }
+
+    </style>
+</head>
+<body>
+    <h2>Type in what kind of project you're interested in:</h2>
+    <textarea id="userInput" rows="4" cols="50"></textarea>
+    <br>
+    <label for="searchType">Search by:</label>
+    <select id="searchType">
+        <option value="description">Description</option>
+        <option value="keywords">Keywords</option>
+    </select>
+    <br>
+    <button onclick="submitQuery()">Submit</button>
+    <button onclick="showAdvancedSearch()">Advanced Search</button>
+    <div id="advancedSearch" style="display: none;">
+        <h3>Advanced Search:</h3>
+        <label for="advancedDescription">Description:</label>
+        <textarea id="advancedDescription" rows="4" cols="50"></textarea><br>
+        
+        <label for="keywords">Keywords:</label>
+        <input type="text" id="keywords"><br>
+        
+        <label for="fieldsOfScience">Fields of Science:</label>
+        <input type="text" id="fieldsOfScience"><br>
+        
+        <label for="skills">Skills:</label>
+        <input type="text" id="skills"><br><br>
+        
+        <button onclick="submitAdvancedQuery()">Submit Advanced Search</button>
+    </div>
+
+    <label for="threshold">Similarity Threshold:</label>
+    <input type="range" id="threshold" name="threshold" min="0" max="1" step="0.01" value="0.5" onchange="updateThresholdValue(this.value);">
+    <span id="thresholdValue">0.5</span>
+    <br><br>
+
+    <h3>Top 5 Matched Projects:</h3>
+    <ul id="matchedProjects"></ul>
+    <div id="projectDescription"></div>
+
+    <script>
+        function submitQuery() {
+            let userInput = document.getElementById("userInput").value;
+            let searchType = document.getElementById("searchType").value;
+            let threshold = document.getElementById("threshold").value;
+
+            fetch("/get_matches", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "user_input": userInput,
+                    "search_type": searchType,
+                    "threshold": threshold
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayMatchedProjects(data);
+            });
+        }
+
+        function showAdvancedSearch() {
+            document.getElementById("advancedSearch").style.display = "block";
+        }
+
+        function submitAdvancedQuery() {
+            let description = document.getElementById("advancedDescription").value;
+            let keywords = document.getElementById("keywords").value;
+            let fieldsOfScience = document.getElementById("fieldsOfScience").value;
+            let skills = document.getElementById("skills").value;
+            
+            fetch("/get_advanced_matches", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    "description": description,
+                    "keywords": keywords,
+                    "fields_of_science": fieldsOfScience,
+                    "skills": skills
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                displayMatchedProjects(data);
+            });
+        }
+
+        function displayMatchedProjects(data) {
+            if (data["projects"].length == 0) {
+                let matchedProjectsList = document.getElementById("matchedProjects");
+                matchedProjectsList.innerHTML = "There are currently no projects matching your interest.";
+            } else {
+                let matchedProjectsList = document.getElementById("matchedProjects");
+                matchedProjectsList.innerHTML = "";
+                data["projects"].forEach(project => {
+                    let listItem = document.createElement("li");
+                    let link = document.createElement("a");
+                    link.href = project.url;
+                    link.target = "_blank";
+                    link.innerText = project.name;
+                    listItem.appendChild(link);
+                    listItem.appendChild(document.createElement("br"));
+                    let description = document.createElement("span");
+                    description.innerText = project.refined_description;  // Display the refined description
+                    listItem.appendChild(description);
+                    matchedProjectsList.appendChild(listItem);
+                });
+            }
+        }
+        function updateThresholdValue(value) {
+            document.getElementById("thresholdValue").innerText = value;
+        }
+
+    </script>
+</body>
+</html>
+
+
